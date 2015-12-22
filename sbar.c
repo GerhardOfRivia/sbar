@@ -25,25 +25,25 @@ char *utcusa = "America/Denver";
 static Display *dpy;
 
 char *smprintf(char *fmt, ...) {
-	va_list fmtargs;
-	char *ret;
-	int len;
+  va_list fmtargs;
+  char *ret;
+  int len;
 
-	va_start(fmtargs, fmt);
-	len = vsnprintf(NULL, 0, fmt, fmtargs);
-	va_end(fmtargs);
+  va_start(fmtargs, fmt);
+  len = vsnprintf(NULL, 0, fmt, fmtargs);
+  va_end(fmtargs);
 
-	ret = malloc(++len);
-	if (ret == NULL) {
-		perror("malloc");
-		exit(1);
+  ret = malloc(++len);
+  if (ret == NULL) {
+    perror("malloc");
+    exit(1);
 	}
 
-	va_start(fmtargs, fmt);
-	vsnprintf(ret, len, fmt, fmtargs);
-	va_end(fmtargs);
+  va_start(fmtargs, fmt);
+  vsnprintf(ret, len, fmt, fmtargs);
+  va_end(fmtargs);
 
-	return ret;
+  return ret;
 }
 
 char *get_status() {
@@ -89,29 +89,29 @@ char *get_status() {
 }
 
 void settz(char *tzname){
-	setenv("TZ", tzname, 1);
+  setenv("TZ", tzname, 1);
 }
 
 char *mktimes(char *fmt, char *tzname){
-	char buf[129];
-	time_t tim;
-	struct tm *timtm;
+  char buf[129];
+  time_t tim;
+  struct tm *timtm;
 
-	memset(buf, 0, sizeof(buf));
-	settz(tzname);
-	tim = time(NULL);
-	timtm = localtime(&tim);
-	if (timtm == NULL) {
-		perror("localtime");
-		exit(1);
-	}
+  memset(buf, 0, sizeof(buf));
+  settz(tzname);
+  tim = time(NULL);
+  timtm = localtime(&tim);
+  if (timtm == NULL) {
+    perror("localtime");
+    exit(1);
+  }
 
-	if (!strftime(buf, sizeof(buf)-1, fmt, timtm)) {
-		fprintf(stderr, "strftime == 0\n");
-		exit(1);
-	}
+  if (!strftime(buf, sizeof(buf)-1, fmt, timtm)) {
+    fprintf(stderr, "strftime == 0\n");
+    exit(1);
+  }
 
-	return smprintf("%s", buf);
+  return smprintf("%s", buf);
 }
 
 char* getaddr(char *host){
@@ -144,48 +144,48 @@ char* getaddr(char *host){
 }
 
 void setstatus(char *str){
-	XStoreName(dpy, DefaultRootWindow(dpy), str);
-	XSync(dpy, False);
+  XStoreName(dpy, DefaultRootWindow(dpy), str);
+  XSync(dpy, False);
 }
 
 char *loadavg(void){
-	double avgs[3];
+  double avgs[3];
 
-	if (getloadavg(avgs, 3) < 0) {
-		perror("getloadavg");
-		exit(1);
-	}
+  if (getloadavg(avgs, 3) < 0) {
+    perror("getloadavg");
+    exit(1);
+  }
 
-	return smprintf("%.2f %.2f %.2f", avgs[0], avgs[1], avgs[2]);
+  return smprintf("%.2f %.2f %.2f", avgs[0], avgs[1], avgs[2]);
 }
 
 int main(void){
-	char *status;
-	char *avgs;
-	char *tmusa;
-	char *pow;
+  char *status;
+  char *avgs;
+  char *tmusa;
+  char *pow;
   char *host;
 
-	if (!(dpy = XOpenDisplay(NULL))) {
-		fprintf(stderr, "dwmstatus: cannot open display.\n");
-		return 1;
-	}
+  if (!(dpy = XOpenDisplay(NULL))) {
+    fprintf(stderr, "dwmstatus: cannot open display.\n");
+    return 1;
+  }
 
-	for (;;sleep(90)) {
-		avgs = loadavg();
-		tmusa = mktimes("%a %d %b %H:%M %Z %Y", utcusa);
+  for (;;sleep(90)) {
+    avgs = loadavg();
+    tmusa = mktimes("%a %d %b %H:%M %Z %Y", utcusa);
     pow = get_status();
     host = getaddr(host);
-		status = smprintf("Load:%s | %s | %s | %s", avgs, host , pow, tmusa);
-		setstatus(status);
-		free(avgs);
-		free(tmusa);
-		free(status);
+    status = smprintf("Load:%s | %s | %s | %s", avgs, host , pow, tmusa);
+    setstatus(status);
+    free(avgs);
+    free(tmusa);
+    free(status);
     free(host);
-	}
+  }
 
-	XCloseDisplay(dpy);
+  XCloseDisplay(dpy);
 
-	return 0;
+  return 0;
 }
 
