@@ -46,40 +46,67 @@ char *smprintf(char *fmt, ...) {
   return ret;
 }
 
+char *smerrorf(char *fmt, ...) {
+  va_list fmtargs;
+  char *ret;
+  int len;
+
+  va_start(fmtargs, fmt);
+  len = vsnprintf(NULL, 0, fmt, fmtargs);
+  va_end(fmtargs);
+
+  ret = malloc(++len);
+  if (ret == NULL) {
+    fprintf(stderr, "smerrorf: malloc failure.\n");
+    exit(1);
+	}
+
+  va_start(fmtargs, fmt);
+  vsnprintf(ret, len, fmt, fmtargs);
+  va_end(fmtargs);
+
+}
+
+float* get_power_info() {
+
+  char *ac_status = "/sys/class/power_supply/AC/online";
+  char *ba_status = "/sys/class/power_supply/BAT0/energy_now";
+  char *po_status = "/sys/class/power_supply/BAT0/energy_full";
+  char current_power[10];
+  char total_power[10];
+  char acVal = NULL;
+  
+  FILE *ac_power_fp = NULL;
+  FILE *ba_power_fp = NULL;;
+  FILE *fu_power_fp = NULL;;
+
+  if ((ac_power_fp = fopen(ac_status, "r")) == NULL) {
+    smerrorf("fopen error: ac_power_fp");
+  }
+  acVal = fgetc(ac_power_fp);
+  fclose(ac_fp);
+
+  if ((ba_power_fp = fopen(ba_status, "r")) == NULL) {
+    smerrorf("fopen error: ba_power_fp");
+  }
+  fgets(current_power, 10, ba_power_fp);
+  fclose(ba_power_fp);
+
+  if ((fu_power_fp = fopen(po_status, "r")) == NULL) {
+    smerrorf("fopen error: fu_power_fp");
+  }
+  fgets(total_power, 10, ba_power_fp);
+  fclose(bat);
+
+  float acp = (float)strtol(current_power, num_end, 10);
+  float num = (float)strtol(current_power, num_end, 10);
+  float dem = (float)strtol(total_power, dem_end, 10);
+
+
+}
+
 char *get_status() {
-  FILE *ac;
-  char *plug = "/sys/class/power_supply/AC/online";
-  if ((ac = fopen(plug, "r")) == NULL) {
-    perror("ac error");
-    exit(1);
-  }
-  char retVal = fgetc(ac);
-  fclose(ac);
-
-  FILE *bat;
-  char *sta = "/sys/class/power_supply/BAT0/energy_now";
-  if ((bat = fopen(sta, "r")) == NULL) {
-    perror("energy_now error");
-    exit(1);
-  }
-  char now[8];
-  fgets(now, 8, bat);
-  fclose(bat);
-
-  char *ful = "/sys/class/power_supply/BAT0/energy_full";
-  if ((bat = fopen(ful, "r")) == NULL) {
-    perror("energy_full error");
-    exit(1);
-  }
-  char all[8];
-  fgets(all, 8, bat);
-  fclose(bat);
-
-  char **num_end = NULL;
-  char **dem_end = NULL;
-
-  float num = (float)strtol(now, num_end, 10);
-  float dem = (float)strtol(all, dem_end, 10);
+  get_power_info();
 
   if (retVal == '1'){
     return smprintf("+%0.f%c", ((num*100)/dem), 37);
