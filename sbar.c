@@ -46,73 +46,64 @@ char *smprintf(char *fmt, ...) {
   return ret;
 }
 
-char *smerrorf(char *fmt, ...) {
-  va_list fmtargs;
-  char *ret;
-  int len;
-
-  va_start(fmtargs, fmt);
-  len = vsnprintf(NULL, 0, fmt, fmtargs);
-  va_end(fmtargs);
-
-  ret = malloc(++len);
-  if (ret == NULL) {
-    fprintf(stderr, "smerrorf: malloc failure.\n");
-    exit(1);
-	}
-
-  va_start(fmtargs, fmt);
-  vsnprintf(ret, len, fmt, fmtargs);
-  va_end(fmtargs);
-
-}
-
-float* get_power_info() {
-
+char get_ac_status(){
   char *ac_status = "/sys/class/power_supply/AC/online";
-  char *ba_status = "/sys/class/power_supply/BAT0/energy_now";
-  char *po_status = "/sys/class/power_supply/BAT0/energy_full";
-  char current_power[10];
-  char total_power[10];
-  char acVal = NULL;
+  char acVal;
   
   FILE *ac_power_fp = NULL;
-  FILE *ba_power_fp = NULL;;
-  FILE *fu_power_fp = NULL;;
-
   if ((ac_power_fp = fopen(ac_status, "r")) == NULL) {
-    smerrorf("fopen error: ac_power_fp");
+    perror("fopen error: ac_power_fp");
   }
   acVal = fgetc(ac_power_fp);
-  fclose(ac_fp);
+  fclose(ac_power_fp);
+  return acVal;
+}
 
+float get_num_status(){
+
+  FILE *ba_power_fp = NULL;;
+  char *ba_status = "/sys/class/power_supply/BAT0/energy_now";
+  char current_power[10];
+  char** num_end = NULL;
+  
   if ((ba_power_fp = fopen(ba_status, "r")) == NULL) {
-    smerrorf("fopen error: ba_power_fp");
+    perror("fopen error: ba_power_fp");
   }
+  
   fgets(current_power, 10, ba_power_fp);
   fclose(ba_power_fp);
+  
+  return (float)strtol(current_power, num_end, 10);
+}
 
-  if ((fu_power_fp = fopen(po_status, "r")) == NULL) {
-    smerrorf("fopen error: fu_power_fp");
+float get_dem_status(){
+  
+  FILE *po_power_fp = NULL;;
+  char *po_status = "/sys/class/power_supply/BAT0/energy_full";
+  char total_power[10];
+  char** dem_end = NULL;
+  
+  if ((po_power_fp = fopen(po_status, "r")) == NULL) {
+    perror("fopen error: po_power_fp");
   }
-  fgets(total_power, 10, ba_power_fp);
-  fclose(bat);
 
-  float acp = (float)strtol(current_power, num_end, 10);
-  float num = (float)strtol(current_power, num_end, 10);
-  float dem = (float)strtol(total_power, dem_end, 10);
-
-
+  fgets(total_power, 10, po_power_fp);
+  fclose(po_power_fp);
+  
+  return (float)strtol(total_power, dem_end, 10);
 }
 
 char *get_status() {
-  get_power_info();
+  char acVal = get_ac_status();
+  float num = get_num_status();
+  float dem = get_dem_status();
 
-  if (retVal == '1'){
+  if (acVal == '1'){
     return smprintf("+%0.f%c", ((num*100)/dem), 37);
   }else{
     return smprintf("-%0.f%c", ((num*100)/dem), 37);
   }
+
 }
 
 void settz(char *tzname){
@@ -129,13 +120,11 @@ char *mktimes(char *fmt, char *tzname){
   tim = time(NULL);
   timtm = localtime(&tim);
   if (timtm == NULL) {
-    perror("localtime");
-    exit(1);
+    perror("mktimes: localtime returned null");
   }
 
   if (!strftime(buf, sizeof(buf)-1, fmt, timtm)) {
-    fprintf(stderr, "strftime == 0\n");
-    exit(1);
+    perror("strftime == 0");
   }
 
   return smprintf("%s", buf);
@@ -144,13 +133,15 @@ char *mktimes(char *fmt, char *tzname){
 char* getaddr(char *host){
   struct ifaddrs *ifaddr, *ifa;
   if (getifaddrs(&ifaddr) == -1){
-    perror("getaddr");
-    exit(1);
+    perror("getaddr: getifaddrs returned -1");
   }
   
   int family, s, n;
-  host = calloc(NI_MAXHOST, sizeof(char));
-
+  host = calloc(NI_MAXHOST,sizeof(char));
+  if (host == NULL){
+    perror("getaddr: host set to NULL");
+  }
+  
   for(ifa = ifaddr, n = 0; ifa != NULL; ifa = ifa->ifa_next, n++) {
     if (ifa->ifa_addr == NULL) continue;
     if (strcmp(ifa->ifa_name, "lo") == 0) continue;
@@ -161,8 +152,7 @@ char* getaddr(char *host){
       s = getnameinfo(ifa->ifa_addr, (family == AF_INET) ? sizeof(struct sockaddr_in):sizeof(struct sockaddr_in6), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
       if(s != 0) {
         freeifaddrs(ifaddr);
-        fprintf(stderr, "getnameinfo() failed: %s\n", gai_strerror(s));
-        exit(1);
+        perror(smprintf("getnameinfo() failed: %s\n", gai_strerror(s)));
       }
     }
   }
@@ -205,10 +195,11 @@ int main(void){
     host = getaddr(host);
     status = smprintf("Load:%s | %s | %s | %s", avgs, host , pow, tmusa);
     setstatus(status);
+    free(status);
     free(avgs);
     free(tmusa);
-    free(status);
     free(host);
+    free(pow);
   }
 
   XCloseDisplay(dpy);
