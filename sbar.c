@@ -1,24 +1,25 @@
 #define _BSD_SOURCE
-#include <unistd.h>
+
+#include <arpa/inet.h>
+#include <ctype.h>
+#include <ifaddrs.h>
+#include <netdb.h>
+#include <linux/if_link.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <strings.h>
-#include <time.h>
-
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <ifaddrs.h>
 
 #include <sys/time.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include <time.h>
+#include <unistd.h>
 #include <X11/Xlib.h>
-
-#include <linux/if_link.h>
 
 char *utcusa = "America/Denver";
 
@@ -130,7 +131,8 @@ char *mktimes(char *fmt, char *tzname){
 	return smprintf("%s", buf);
 }
 
-void getaddr(char *host){
+char* getaddr(){
+    char *host;
 	struct ifaddrs *ifaddr, *ifa;
 	if (getifaddrs(&ifaddr) == -1){
 		fprintf(stderr, "getaddr: getifaddrs returned -1");
@@ -152,11 +154,12 @@ void getaddr(char *host){
 			s = getnameinfo(ifa->ifa_addr, (family == AF_INET) ? sizeof(struct sockaddr_in):sizeof(struct sockaddr_in6), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
 			if(s != 0) {
 				freeifaddrs(ifaddr);
-				perror(smprintf("getnameinfo() failed: %s\n", gai_strerror(s)));
+				fprintf(stderr, "getnameinfo() failed.\n");
 			}
 		}
 	}
 	freeifaddrs(ifaddr);
+    return host;
 }
 
 char *loadavg(void){
@@ -183,7 +186,7 @@ char* getStatus(int mode) {
 	char* tempStatus;
 
 	avgs = loadavg();
-	getaddr(host);
+	host = getaddr();
 	tmusa = mktimes("%a %d %b %H:%M %Z %Y", utcusa);
 
 	if (mode & 1) {
@@ -201,9 +204,10 @@ char* getStatus(int mode) {
 	return tempStatus;
 }
 
-int main(void){
+int main(int argc, char* argv[]){
 
 	int mode;
+    int opt;
 	char *status;
 
 	if (!(dpy = XOpenDisplay(NULL))) {
@@ -211,7 +215,7 @@ int main(void){
 		return 1;
 	}
 
-	while ((opt = getopt(argc, argv, "b")) != -1) {
+	while ((opt = getopt(argc, argv, "b:")) != -1) {
 		if (opt == 'b') {
 			mode += 1;
 		} else {
@@ -220,10 +224,9 @@ int main(void){
 		}
 	}
 
-
 	for (;;sleep(90)) {
 		status = getStatus(mode);
-		setstatus(status);
+		setStatus(status);
 		free(status);
 	}
 
