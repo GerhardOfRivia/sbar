@@ -1,4 +1,4 @@
-#define _BSD_SOURCE
+#define  _DEFAULT_SOURCE
 
 #include <arpa/inet.h>
 #include <ctype.h>
@@ -132,34 +132,39 @@ char *mktimes(char *fmt, char *tzname){
 }
 
 char* getaddr(){
-    char *host;
+
+	int family, s, n;
 	struct ifaddrs *ifaddr, *ifa;
 	if (getifaddrs(&ifaddr) == -1){
 		fprintf(stderr, "getaddr: getifaddrs returned -1");
 	}
 
-	int family, s, n;
-	host = calloc(NI_MAXHOST,sizeof(char));
-	if (host == NULL){
-		fprintf(stderr,"getaddr: host set to NULL");
-	}
+	char host[NI_MAXHOST];
+	char *ret_host = NULL;
 
 	for(ifa = ifaddr, n = 0; ifa != NULL; ifa = ifa->ifa_next, n++) {
-		if (ifa->ifa_addr == NULL) continue;
-		if (strcmp(ifa->ifa_name, "lo") == 0) continue;
+		if ((ifa->ifa_addr == NULL) || (strcmp(ifa->ifa_name, "lo") == 0)) continue;
 
 		family = ifa->ifa_addr->sa_family;
 
 		if (family == AF_INET) {
 			s = getnameinfo(ifa->ifa_addr, (family == AF_INET) ? sizeof(struct sockaddr_in):sizeof(struct sockaddr_in6), host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
-			if(s != 0) {
+			if (s != 0) {
 				freeifaddrs(ifaddr);
 				fprintf(stderr, "getnameinfo() failed.\n");
+				return NULL;
+			}
+			if (ret_host == NULL) {
+				ret_host = smprintf("%s: %s", ifa->ifa_name, host);
+			} else {
+				char *temp_host = ret_host;
+				ret_host = smprintf("%s , %s: %s", ret_host, ifa->ifa_name, host);
+				free(temp_host);
 			}
 		}
 	}
 	freeifaddrs(ifaddr);
-    return host;
+    return ret_host;
 }
 
 char *loadavg(void){
@@ -223,7 +228,6 @@ int main(int argc, char* argv[]){
 			exit(EXIT_FAILURE);
 		}
 	}
-
 	for (;;sleep(90)) {
 		status = getStatus(mode);
 		setStatus(status);
