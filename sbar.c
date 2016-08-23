@@ -220,7 +220,7 @@ int main(int argc, char* argv[]){
 		return 1;
 	}
 
-	while ((opt = getopt(argc, argv, "b:")) != -1) {
+	while ((opt = getopt(argc, argv, "b")) != -1) {
 		if (opt == 'b') {
 			mode += 1;
 		} else {
