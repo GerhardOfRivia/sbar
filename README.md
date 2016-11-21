@@ -9,4 +9,4 @@ Test it Out
 
 Something similar
 ---
-slstatus is a suckless and lightweight status monitor for window managers which use WM_NAME as statusbar (e.g. DWM). [https://git.nulltime.net/slstatus](slststus)
+slstatus is a suckless and lightweight status monitor for window managers which use WM_NAME as statusbar (e.g. DWM). [slststus](https://git.nulltime.net/slstatus)
