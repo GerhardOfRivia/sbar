@@ -15,8 +15,4 @@ dwm’s status bar text can be set using the xsetroot -name $status notion. This
 Test it Out on Linux
 ---
 
-`git clone https://github.com/AsynchronousGillz/SBAR.git`
-
-`cd SBAR`
-
 `make`
